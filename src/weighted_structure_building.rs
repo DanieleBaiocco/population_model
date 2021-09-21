@@ -1,6 +1,8 @@
 
-pub trait WeightedStructure<T> : Clone{
 
+pub trait WeightedStructure<T> {
+
+    fn cln(&self) ->Box<dyn WeightedStructure<T>>;
     fn get_total_weight(&self) -> f64;
 
     //obbligato a mettere la reference a self, perchè il compilatore
@@ -8,7 +10,7 @@ pub trait WeightedStructure<T> : Clone{
     fn select(&self, w: f64)-> Option<WeightedElement<T>>;
 
     //idem qua
-    fn add(&self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>>;
+    fn add(&mut self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>>;
 
 //forse aggiungere il getAll
 }
@@ -18,42 +20,48 @@ pub struct WeightedElement<T>{
     t: T,
 }
 impl <T: Clone> WeightedElement<T>{
-    fn new(w: f64, t: T) -> WeightedElement<T>{
+    pub fn new(w: f64, t: T) -> WeightedElement<T>{
         WeightedElement{
             w,
             t
         }
     }
-    fn residual(&self, nw: f64) -> WeightedElement<T>{
+    pub fn residual(&self, nw: f64) -> WeightedElement<T>{
         let w = self.w - nw;
         let t = self.t.clone();
         WeightedElement::new(w,t)
     }
-}
-impl <T: Clone> Clone for WeightedElement<T>{
-    fn clone(&self) -> Self {
+    fn cln_as_weighted_item(&self) -> Box<WeightedElement<T>>{
         let w = self.w;
         let t = self.t.clone();
-        WeightedElement::new(w,t)
+        Box::new(WeightedElement::new(w,t ))
     }
 }
+
 impl <T: 'static + Clone> WeightedStructure<T> for WeightedElement<T>{
+    fn cln(&self) -> Box<dyn WeightedStructure<T>> {
+        let w = self.w;
+        let t = self.t.clone();
+        Box::new(WeightedElement::new(w,t ))
+    }
+
     fn get_total_weight(&self) -> f64 {
         self.w
     }
 
     fn select(&self, w: f64) -> Option<WeightedElement<T>> {
         if w <= self.w {
-            let res = self.clone();
-            return Some(res)
+            let res = self.cln_as_weighted_item();
+
+            return Some(*res)
         };
         None
     }
 
-    fn add(&self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>> {
-        let we = self.clone();
+    fn add(&mut self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>> {
+        let we = self.cln();
         Box::new(ComposedWeightedStructure::new(
-            Some(Box::new(we)), ws))
+            Some(we), ws))
     }
 }
 
@@ -62,25 +70,24 @@ pub struct WeightedVector<T>{
     vec: Vec<WeightedElement<T>>,
 }
 impl <T> WeightedVector<T>{
-    fn new(total_weight: f64, vec: Vec<WeightedElement<T>>) -> WeightedVector<T>{
+    pub fn new(total_weight: f64, vec: Vec<WeightedElement<T>>) -> WeightedVector<T>{
         WeightedVector{
             total_weight,
             vec,
         }
     }
 }
-impl <T: Clone> Clone for WeightedVector<T>{
-    fn clone(&self) -> Self {
+impl <T: 'static + Clone> WeightedStructure<T> for WeightedVector<T>{
+    fn cln(&self) -> Box<dyn WeightedStructure<T>> {
         let mut v = Vec::new();
         for el in self.vec.iter(){
             let t = el.t.clone();
             let we = WeightedElement::new(el.w, t);
             v.push(we);
         }
-        let wv = WeightedVector::new(self.total_weight, v);
+         Box::new(WeightedVector::new(self.total_weight, v))
     }
-}
-impl <T: 'static + Clone> WeightedStructure<T> for WeightedVector<T>{
+
     fn get_total_weight(&self) -> f64 {
         self.total_weight
     }
@@ -97,14 +104,13 @@ impl <T: 'static + Clone> WeightedStructure<T> for WeightedVector<T>{
     }
 
 
-    fn add(&self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>> {
-       let wv = self.clone();
+    fn add(&mut self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>> {
+       let wv = self.cln();
         if let None = ws {
-
-            return Box::new(wv)
+            return wv
         }
         Box::new(ComposedWeightedStructure::new(
-            Some(Box::new(wv)), ws))
+            Some(wv), ws))
     }
     //aggiungere l'add presente nel PopulationModel
 }
@@ -116,7 +122,7 @@ pub struct ComposedWeightedStructure<T> {
 }
 impl <T> ComposedWeightedStructure<T>{
     //non capisco perche è moved
-    fn new(left: Option<Box<dyn WeightedStructure<T>>>,
+    pub fn new(left: Option<Box<dyn WeightedStructure<T>>>,
            right: Option<Box<dyn WeightedStructure<T>>>)-> ComposedWeightedStructure<T> {
         let mut total_weight = 0.0;
         //devo mettere some e none?
@@ -128,16 +134,28 @@ impl <T> ComposedWeightedStructure<T>{
            right,
         }
     }
+    fn set_left (&mut self, left: Option<Box<dyn WeightedStructure<T>>>){
+        self.left = left
+    }
+    fn set_right(&mut self, right: Option<Box<dyn WeightedStructure<T>>>){
+        self.right = right
+    }
 
 }
-impl <T> Clone for ComposedWeightedStructure<T>{
-    fn clone(&self) -> Self {
-        let left = self.left.clone();
-        let right = self.right.clone();
-        ComposedWeightedStructure::new(left,right)
-    }
-}
 impl <T: 'static> WeightedStructure<T> for ComposedWeightedStructure<T>{
+
+    fn cln(&self) -> Box<dyn WeightedStructure<T>> {
+        let left = match self.left{
+            None => { None }
+            Some(ref res) => { Some(res.cln())}
+        };
+        let right = match self.right {
+            None => { None }
+            Some(ref res) => { Some (res.cln())}
+        };
+        Box::new(ComposedWeightedStructure::new(left,right))
+    }
+
     fn get_total_weight(&self) -> f64 {
         self.total_weight
     }
@@ -160,30 +178,30 @@ impl <T: 'static> WeightedStructure<T> for ComposedWeightedStructure<T>{
 
         fn add(& mut self, ws: Option<Box<dyn WeightedStructure<T>>>) -> Box<dyn WeightedStructure<T>> {
              match ws {
-                None => {return Box::new(self.clone())}
+                None => {return self.cln()}
                 Some(res) => {
                     let increment = res.get_total_weight();
-                    let mut left = self.left.unwrap_or_else(||{
-                        return res
-                    });
-                    let mut right = self.right.unwrap_or_else(||{
+                    if let None = self.left{
+                        return res;
+                    }
+                    if let None = self.right{
                         self.right = Some(res);
                         self.total_weight += increment;
-                        return Box::new(self.clone())
-                    });
-                    if increment >= left.get_total_weight() &&
-                        increment >= right.get_total_weight(){
-                        return Box::new(ComposedWeightedStructure::new(
-                            Some(Box::new(self.clone())), Some(res)))
+                        return self.cln()
                     }
-                    if left.get_total_weight() < right.get_total_weight(){
-                        left = left.add(Some(res));
+                    let mut cln_l = self.left.as_ref().unwrap().cln();
+                    let mut cln_r = self.right.as_ref().unwrap().cln();
+                    if increment >= cln_l.get_total_weight() && increment >= cln_r.get_total_weight(){
+                        return Box::new(ComposedWeightedStructure::new(Some(self.cln()), Some(res)))
+                    }
+                    if cln_l.get_total_weight() < cln_r.get_total_weight(){
+                        self.left = Some(cln_l.add(Some(res)));
                     }
                     else {
-                        right = right.add(Some(res));
+                        self.right = Some (cln_r.add(Some(res)));
                     }
                     self.total_weight += increment;
-                    Box::new(self.clone())
+                    self.cln()
                 }
             }
         }
