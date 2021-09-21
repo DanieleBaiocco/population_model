@@ -1,7 +1,8 @@
 use rand::prelude::ThreadRng;
 use super::population_description::PopulationState;
 use std::collections::HashMap;
-use crate::population_description::Population;
+use crate::population_description::{Population, State};
+
 
 pub trait PopulationRule{
     /// se la regola non è applicabile ritorna None
@@ -12,6 +13,7 @@ pub struct ReactionRule{
     name: String,
     reactans: Vec<Population>,
     products: Vec<Population>,
+    //levato il now credo dagli input della fn
     rate_function: fn(PopulationState)-> f64,
     update: Update,
 }
@@ -56,8 +58,9 @@ impl PopulationRule for ReactionRule{
                 if rate <= 0.0 { return None }
                 let update = self.update.clone();
                 let name = self.name.clone();
-                //problema qua
-                Some(PopulationTransition::new(&|tr| { update} , rate, name))
+                //problema quaù
+                let d = |tr: ThreadRng| { update};
+                Some(PopulationTransition::new(Box::new(d) , rate, name))
             }
             false => { return None}
         }
@@ -108,17 +111,18 @@ impl Update{
     }
 }
 
-pub struct PopulationTransition<'a>{
-    transition_drift_function: & 'a dyn Fn(ThreadRng) -> Update,
+
+pub struct PopulationTransition{
+    transition_drift_function: Box< dyn FnOnce(ThreadRng) -> Update>,
     rate: f64,
     name: String,
 }
 
-impl <'a> PopulationTransition <'a> {
+impl PopulationTransition{
     /*
     non so se è necessario mettere 'a
      */
-    fn new (transition: & 'a dyn Fn(ThreadRng) -> Update,
+    pub fn new (transition: Box<dyn FnOnce(ThreadRng) -> Update>,
             rate: f64,
             name: String) ->  PopulationTransition {
         PopulationTransition{
@@ -127,18 +131,56 @@ impl <'a> PopulationTransition <'a> {
             name,
         }
     }
-    fn get_name(&self) -> &String{
+    pub fn get_name(&self) -> &String{
         &self.name
     }
-    fn get_rate(&self) -> f64{
+    pub fn get_rate(&self) -> f64{
         self.rate
     }
-    fn apply(&self, tr: ThreadRng) -> Update{
+    pub fn apply(self, tr: ThreadRng) -> Update{
         (self.transition_drift_function)(tr)
     }
 }
+
 /*
-private final Function<RandomGenerator,Update> transitionDriftFunction;
-	private final double rate;
-	private final String name;
+assomiglia alla functional interface
  */
+
+pub struct StepFunction<S: State>{
+    step: Box<dyn FnOnce(ThreadRng,f64, f64)->S>,
+
+}
+impl <S: State> StepFunction<S>{
+     pub fn new ( step: Box<dyn FnOnce(ThreadRng,f64, f64)->S>) -> StepFunction<S>{
+         StepFunction{
+             step,
+         }
+    }
+    pub fn step(self, rg: ThreadRng, now: f64, dt:  f64) -> S{
+        (self.step)(rg, now, dt)
+    }
+}
+impl <S: State> Clone for StepFunction<S>{
+    fn clone(&self) -> Self {
+        todo!()
+    }
+}
+pub struct TimeStep<S: State> {
+    time : f64,
+    value: S,
+}
+
+impl <S: State> TimeStep<S>{
+    pub fn new(time : f64, value: S)-> TimeStep<S>{
+        TimeStep{
+            time,
+            value,
+        }
+    }
+    pub fn get_time(&self) -> f64{
+        self.time
+    }
+    pub fn get_value(&self) -> &S{
+        &self.value
+    }
+}

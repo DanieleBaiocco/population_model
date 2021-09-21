@@ -31,10 +31,13 @@ impl <T: Clone> WeightedElement<T>{
         let t = self.t.clone();
         WeightedElement::new(w,t)
     }
-    fn cln_as_weighted_item(&self) -> Box<WeightedElement<T>>{
+    pub fn cln_as_weighted_item(&self) -> Box<WeightedElement<T>>{
         let w = self.w;
         let t = self.t.clone();
         Box::new(WeightedElement::new(w,t ))
+    }
+    pub fn get_s(&self) -> &T{
+        &self.t
     }
 }
 
@@ -70,11 +73,21 @@ pub struct WeightedVector<T>{
     vec: Vec<WeightedElement<T>>,
 }
 impl <T> WeightedVector<T>{
+    pub fn init() -> WeightedVector<T>{
+        WeightedVector{
+            total_weight :  0.0,
+            vec : Vec::new(),
+        }
+    }
     pub fn new(total_weight: f64, vec: Vec<WeightedElement<T>>) -> WeightedVector<T>{
         WeightedVector{
             total_weight,
             vec,
         }
+    }
+    pub fn add_weighted_element(&mut self,we : WeightedElement<T>){
+        self.total_weight += we.w;
+        self.vec.push(we);
     }
 }
 impl <T: 'static + Clone> WeightedStructure<T> for WeightedVector<T>{
@@ -134,12 +147,7 @@ impl <T> ComposedWeightedStructure<T>{
            right,
         }
     }
-    fn set_left (&mut self, left: Option<Box<dyn WeightedStructure<T>>>){
-        self.left = left
-    }
-    fn set_right(&mut self, right: Option<Box<dyn WeightedStructure<T>>>){
-        self.right = right
-    }
+
 
 }
 impl <T: 'static> WeightedStructure<T> for ComposedWeightedStructure<T>{
@@ -156,7 +164,7 @@ impl <T: 'static> WeightedStructure<T> for ComposedWeightedStructure<T>{
         Box::new(ComposedWeightedStructure::new(left,right))
     }
 
-    fn get_total_weight(&self) -> f64 {
+   fn get_total_weight(&self) -> f64 {
         self.total_weight
     }
 

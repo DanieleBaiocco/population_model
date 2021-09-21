@@ -2,6 +2,7 @@ use super::population_changes::Update;
 
 pub trait State{}
 
+#[derive(Clone)]
 pub struct PopulationState{
      population: f64,
     population_vector : Vec<u32>,
