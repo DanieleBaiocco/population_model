@@ -20,8 +20,9 @@ pub struct ReactionRule{
 
 impl ReactionRule{
     pub fn new(name: String, reactans: Vec<Population>,
-               products: Vec<Population>, rate_function: fn(PopulationState)->f64,
-               mut update: Update) -> ReactionRule {
+               products: Vec<Population>, rate_function: fn(PopulationState)->f64) -> ReactionRule {
+        let copy_name = name.clone();
+        let mut update = Update::new(copy_name);
         reactans.iter().for_each(|r|{
             update.consume(&(r.get_index() as u32), r.get_size())
         });

@@ -69,6 +69,12 @@ pub struct Population{
 }
 
 impl Population{
+    pub fn new(index: usize) -> Population{
+        Population{
+            index,
+            size : 1,
+        }
+    }
     pub fn get_size(&self) -> u32{
         self.size
     }
@@ -76,9 +82,7 @@ impl Population{
         self.index
     }
 }
-/*
-potrei metterlo in un modulo con tutte handle delle eccezioni
- */
+
     fn get_with_handle<T>(res: Option<&T> ) -> &T {
         match res {
             Some(res) => res,

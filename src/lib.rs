@@ -1,10 +1,11 @@
-use self::population_changes::PopulationRule;
+pub use crate::population_changes::PopulationRule;
+pub use crate::population_changes::ReactionRule;
+pub use crate::population_description::Population;
 use crate::weighted_structure_building::{WeightedStructure, WeightedVector, WeightedElement};
 use crate::population_changes::{StepFunction, TimeStep};
-use crate::population_description::PopulationState;
+pub use crate::population_description::PopulationState;
 use rand::rngs::ThreadRng;
 use rand::RngCore;
-use std::borrow::{BorrowMut, Borrow};
 
 mod population_description;
 mod population_changes;
@@ -46,7 +47,6 @@ impl PopulationModel{
         if total_weight == 0.0{
             return None
         }
-        //calcolo dt con funzione
         let dt =  PopulationModel::sample_exponential_distribution (total_weight, & mut rgc);
         let select = rgc.next_u64() as f64 * total_weight;
         let we = transitions.select(select);
