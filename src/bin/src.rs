@@ -3,40 +3,40 @@ use rand::{thread_rng, Rng};
 use tesina_population::{ PopulationState,  ReactionRule, Population};
 
 fn main(){
-    let s: usize = 0;
-    let i : usize = 1;
-    let r : usize = 2;
+    const s: usize = 0;
+    const I: usize = 1;
+    const R: usize = 2;
 
-    let scale : u32 = 100;
-    let init_s = 99 * scale;
-    let init_i = 1 * scale;
-    let init_r = 0 * scale;
+    const SCALE: u32 = 100;
+    const INIT_S: u32 = 99 * SCALE;
+    const INIT_I: u32 = 1 * SCALE;
+    const INIT_R: u32 = 0 * SCALE;
 
-    let n = (init_s + init_r + init_i) as f64;
+    const N: f64 = (INIT_S + INIT_R + INIT_I) as f64;
 
-    let lambda_meet  = 4.0;
-    let prob_transmission  = 0.1;
-    let lambda_r = 1.0/15.0;
+    const LAMBDA_MEET: f64 = 4.0;
+    const PROB_TRANSMISSION: f64 = 0.1;
+    const LAMBDA_R: f64 = 1.0/15.0;
 
     fn generate_population_state() -> PopulationState{
-        PopulationState::create_from_states(vec![init_s, init_i, init_r])
+        PopulationState::create_from_states(vec![INIT_S, INIT_I, INIT_R])
     }
 
     fn generate_rules() -> Vec<Box<ReactionRule>>{
         let rule_s_i  = Box::new(ReactionRule::new(String::from("S -> I"),
-        vec![Population::new(s), Population::new(i)],
-        vec![Population::new(i), Population::new(i)],
-        |se|{
+                                                   vec![Population::new(s), Population::new(I)],
+                                                   vec![Population::new(I), Population::new(I)],
+                                                   |se|{
             let r = se.get_cardinality(s) as f64;
-            let res :f64= r * lambda_meet * prob_transmission * ((se.get_cardinality(i) as f64)/n);
+            let res= R as f64 * LAMBDA_MEET * PROB_TRANSMISSION * ((se.get_cardinality(I) as f64)/ N);
             res
         }));
         let rule_i_r = Box::new(ReactionRule::new(String::from("I -> R"),
-                                         vec![Population::new(i)],
-                                         vec![ Population::new(r)],
-                                         |se|{
-                                             let r = se.get_cardinality(i) as f64;
-                                             let res :f64= r * lambda_r;
+                                                  vec![Population::new(I)],
+                                                  vec![ Population::new(R)],
+                                                  |se|{
+                                             let r = se.get_cardinality(I) as f64;
+                                             let res = R as f64 * LAMBDA_R;
                                              res
                                          }));
         let mut vect_to_return = Vec::new();
