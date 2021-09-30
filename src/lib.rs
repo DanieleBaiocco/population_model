@@ -1,8 +1,8 @@
 pub use crate::population_changes::PopulationRule;
 pub use crate::population_changes::ReactionRule;
 pub use crate::population_description::Population;
-use crate::weighted_structure_building::{WeightedStructure, WeightedVector, WeightedElement};
-use crate::population_changes::{StepFunction, TimeStep};
+use crate::weighted_structure_building::{ PopulationVector, PopulationElement};
+use crate::population_changes::StepFunction;
 pub use crate::population_description::PopulationState;
 use rand::rngs::ThreadRng;
 use rand::RngCore;
@@ -21,50 +21,38 @@ impl PopulationModel{
         }
     }
 
-    pub fn get_transitions(&self, rg: ThreadRng, now: f64, pop_state: PopulationState) -> Box<dyn WeightedStructure<StepFunction<PopulationState>>> {
-        let mut wv: WeightedVector<StepFunction<PopulationState>> = WeightedVector::init();
+    pub fn get_transitions(&self, pop_state: PopulationState) -> PopulationVector<StepFunction<PopulationState>> {
+        let mut pv: PopulationVector<StepFunction<PopulationState>> = PopulationVector::init();
         for population_rule  in self.rules.iter(){
-            let pop_state1 = pop_state.clone();
-            let pop_state2 = pop_state.clone();
-            let rgc = rg.clone();
-            let tra = population_rule.apply(rgc, now, pop_state1);
-            if let Some(pop_tra) = tra {
-                let rate = pop_tra.get_rate();
-                let fnc = Box::new(|rg: ThreadRng, now: f64, dt: f64|{
-                    pop_state2.update_population_state(pop_tra.apply(rg))
+            let pop_state_to_move = pop_state.clone();
+            let tra = population_rule.apply(&pop_state);
+            if let Some(update) = tra {
+                let rate = update.get_rate();
+                let fnc = Box::new(||{
+                    pop_state_to_move.update_population_state(update)
                 });
                 let step_function :StepFunction<PopulationState> = StepFunction::new(fnc);
-                let we = WeightedElement::new(rate,step_function);
-                wv.add_weighted_element(we)
+                let pe = PopulationElement::new(rate,step_function);
+                pv.add(pe)
             }
         }
-        Box::new(wv)
+        pv
     }
-    pub fn next(&self, mut rg: ThreadRng, time : f64, pop_state: PopulationState) -> Option<TimeStep<PopulationState>>{
-        let mut rgc = rg.clone();
-        let transitions =self.get_transitions(rg, time, pop_state);
+    pub fn next(&self, rg: &mut ThreadRng, pop_state: PopulationState) -> Option<PopulationState>{
+        let transitions =self.get_transitions(pop_state);
         let total_weight =  transitions.get_total_weight();
         if total_weight == 0.0{
             return None
         }
-        let dt =  PopulationModel::sample_exponential_distribution (total_weight, & mut rgc);
-        let select = rgc.next_u64() as f64 * total_weight;
+        let select = rg.next_u64() as f64 * total_weight;
         let we = transitions.select(select);
         return match we {
             None => { None }
             Some(we_inside) => {
-                let we_inside =we_inside.get_s().clone();
-                Some(TimeStep::new(time, we_inside.step(rgc, time, dt)))
+                let we_inside =we_inside.get_t();
+                Some(we_inside.step())
             }
         }
     }
-    fn sample_exponential_distribution (total : f64, rg: &mut ThreadRng) -> f64{
-        if total <= 0.0{
-            panic!("Error")
-        }
-        let second_part = (1 as f64) /  (rg.next_u64() as f64);
-        let log_second_part = second_part.log2();
-        let result = (1.0 / total) * log_second_part;
-        result
-    }
+
 }

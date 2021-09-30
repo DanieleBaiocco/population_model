@@ -42,9 +42,12 @@ impl PopulationState {
         res as f64 / self.population
     }
 
+    pub fn get_population_vector(&self) -> &Vec<u32>{
+        &self.population_vector
+    }
+
     /*
     viene consumato il seguente PopulationState per crearne un altro dopo l'applicazione dell'update
-    Non so se è giusto consumare questo PopulationState.
      */
     pub fn update_population_state(self, update: Update) -> PopulationState{
         let mut new_population_vector = self.population_vector.clone();
@@ -53,7 +56,7 @@ impl PopulationState {
             let new_value = get_with_handle(new_population_vector.get(*index as usize)) + value;
             match new_value {
                 x if x < 0 => panic!("Dopo l'update la popolazione risultante per una data specie è sotto lo 0"),
-                x => {
+                _ => {
                     new_population_vector[*index as usize] = new_value;
                     population += *value as f64;
                 }
@@ -89,6 +92,9 @@ impl Population{
             None => panic!("index out of bound"),
         }
     }
+
+
+
 
 
 
