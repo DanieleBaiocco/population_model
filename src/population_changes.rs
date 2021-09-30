@@ -30,10 +30,10 @@ impl ReactionRule{
     fn build_update(name: String, reactans: &Vec<Population>, products: Vec<Population>) -> Update{
         let mut update_to_return = Update::new(name);
         reactans.iter().for_each(|r|{
-            update_to_return.consume(&(r.get_index() as u32), r.get_size())
+            update_to_return.consume(&(r.get_index() as u32), r.get_size() as i32)
         });
         products.iter().for_each(|r|{
-            update_to_return.produce(&(r.get_index() as u32), r.get_size())
+            update_to_return.produce(&(r.get_index() as u32), r.get_size() as i32)
         });
         update_to_return
     }
@@ -66,7 +66,7 @@ impl PopulationRule for ReactionRule{
 
 #[derive(Clone)]
 pub struct Update{
-    update: HashMap<u32, u32>,
+    update: HashMap<u32, i32>,
     name: String,
     rate: f64,
 }
@@ -81,31 +81,31 @@ impl Update{
         }
     }
 
-    pub fn get_updates(&self) -> Vec<(&u32, &u32)> {
-        let res: Vec<(&u32, &u32)> = self.update.iter().collect();
+    pub fn get_updates(&self) -> Vec<(&u32, &i32)> {
+        let res: Vec<(&u32, &i32)> = self.update.iter().collect();
         res
     }
 
-    pub fn add(&mut self, i: &u32, c: u32, p: u32){
+    pub fn add(&mut self, i: &u32, c: i32, p: i32){
         if c != p {
             let res =  self.update.get(i);
             match res {
                 Some(result) => {
                     self.update.insert(*i, result + p - c)
                 },
-                None => self.update.insert(*i, p - c),
+                None => self.update.insert(*i, p - c ),
             };
         }
     }
 
-    pub fn produce(&mut self, i: &u32, p: u32){
+    pub fn produce(&mut self, i: &u32, p: i32){
         self.add(i, 0, p);
     }
 
-    pub fn consume(&mut self, i: &u32, c: u32){
+    pub fn consume(&mut self, i: &u32, c: i32){
         self.add(i, c, 0);
     }
-    pub fn get_single_update(&self, i: &u32) -> &u32 {
+    pub fn get_single_update(&self, i: &u32) -> &i32 {
         self.update.get(i).unwrap_or(&0)
     }
 

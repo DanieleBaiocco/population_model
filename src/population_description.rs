@@ -53,11 +53,11 @@ impl PopulationState {
         let mut new_population_vector = self.population_vector.clone();
         let mut population = self.population;
         for (index, value) in update.get_updates(){
-            let new_value = get_with_handle(new_population_vector.get(*index as usize)) + value;
+            let new_value = *get_with_handle(new_population_vector.get(*index as usize)) as i32 + *value;
             match new_value {
                 x if x < 0 => panic!("Dopo l'update la popolazione risultante per una data specie è sotto lo 0"),
                 _ => {
-                    new_population_vector[*index as usize] = new_value;
+                    new_population_vector[*index as usize] = new_value as u32;
                     population += *value as f64;
                 }
             }

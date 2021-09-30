@@ -5,7 +5,7 @@ use crate::weighted_structure_building::{ PopulationVector, PopulationElement};
 use crate::population_changes::StepFunction;
 pub use crate::population_description::PopulationState;
 use rand::rngs::ThreadRng;
-use rand::RngCore;
+use rand::{RngCore, Rng};
 
 mod population_description;
 mod population_changes;
@@ -44,7 +44,7 @@ impl PopulationModel{
         if total_weight == 0.0{
             return None
         }
-        let select = rg.next_u64() as f64 * total_weight;
+        let select = rg.gen::<f64>() * total_weight;
         let we = transitions.select(select);
         return match we {
             None => { None }

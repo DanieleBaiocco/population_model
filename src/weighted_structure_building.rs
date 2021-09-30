@@ -44,7 +44,9 @@ impl <T> PopulationVector<T>{
     }
 
     pub fn add(&mut self, element: PopulationElement<T>){
+        self.total_weight += element.w;
         self.elements.push(element);
+
     }
 
     pub fn select(self, w: f64) -> Option<PopulationElement<T>>{

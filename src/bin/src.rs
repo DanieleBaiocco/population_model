@@ -7,7 +7,7 @@ fn main(){
     const I: usize = 1;
     const R: usize = 2;
 
-    const SCALE: u32 = 100;
+    const SCALE: u32 = 10;
     const INIT_S: u32 = 99 * SCALE;
     const INIT_I: u32 = 1 * SCALE;
     const INIT_R: u32 = 0 * SCALE;
@@ -49,13 +49,20 @@ fn main(){
     let pop_state = generate_population_state();
     let rules = generate_rules();
     let pop_model = PopulationModel::new(rules);
-    let generatore = &mut ThreadRng::default();
-    let ops =pop_model.next( generatore, pop_state);
-    let ps = ops.unwrap();
-    println!("ciao bello");
-    /*
-    for (index, el) in ps.get_population_vector().iter().enumerate(){
-        println!("indice {:?}, numero {:?}", index, el);
-    }*/
+    let generatore = &mut rand::thread_rng();
+    let ps1 =pop_model.next( generatore, pop_state).unwrap();
+
+    let mut stack = Vec::new();
+    stack.push(ps1);
+    for n in 1..101{
+        let prev_state = stack.pop().unwrap();
+        let new_state = pop_model.next(generatore, prev_state).unwrap();
+        println!("ITERAZIONE {:?}", n);
+        for (index, el) in new_state.get_population_vector().iter().enumerate(){
+            println!(" indice {:?}, numero {:?}", index, el);
+        }
+        println!("-----------------");
+        stack.push(new_state);
+    }
 
 }
