@@ -19,13 +19,6 @@ impl PopulationState {
         }
     }
 
-   pub fn create_from_species(size: usize, species: Vec<Population>) -> PopulationState{
-        let mut states = Vec::with_capacity(size);
-        species.iter().for_each(|specie|{
-            states[specie.get_index()] += specie.get_size();
-        });
-       PopulationState::create_from_states(states)
-    }
 
    pub fn create_from_states(states: Vec<u32>) -> PopulationState{
        let population: u32 = states.iter().sum();
@@ -46,9 +39,6 @@ impl PopulationState {
         &self.population_vector
     }
 
-    /*
-    viene consumato il seguente PopulationState per crearne un altro dopo l'applicazione dell'update
-     */
     pub fn update_population_state(self, update: Update) -> PopulationState{
         let mut new_population_vector = self.population_vector.clone();
         let mut population = self.population;

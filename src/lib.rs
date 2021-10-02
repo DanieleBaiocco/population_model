@@ -1,7 +1,7 @@
 pub use crate::population_changes::PopulationRule;
 pub use crate::population_changes::ReactionRule;
 pub use crate::population_description::Population;
-use crate::weighted_structure_building::{ PopulationVector, PopulationElement};
+use crate::population_structure::{PopulationVector, PopulationElement};
 use crate::population_changes::StepFunction;
 pub use crate::population_description::PopulationState;
 use rand::rngs::ThreadRng;
@@ -9,7 +9,7 @@ use rand::{RngCore, Rng};
 
 mod population_description;
 mod population_changes;
-mod weighted_structure_building;
+mod population_structure;
 
 pub struct PopulationModel{
     rules : Vec<Box<dyn PopulationRule>>,
@@ -25,8 +25,8 @@ impl PopulationModel{
         let mut pv: PopulationVector<StepFunction<PopulationState>> = PopulationVector::init();
         for population_rule  in self.rules.iter(){
             let pop_state_to_move = pop_state.clone();
-            let tra = population_rule.apply(&pop_state);
-            if let Some(update) = tra {
+            let op_update = population_rule.apply(&pop_state);
+            if let Some(update) = op_update {
                 let rate = update.get_rate();
                 let fnc = Box::new(||{
                     pop_state_to_move.update_population_state(update)
